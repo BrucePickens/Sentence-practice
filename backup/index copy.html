@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VAKCOG - Code 4</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  h1 { text-align: center; }
+  .flash-word { font-size: 32px; text-align: center; margin: 20px; border: 1px solid #ccc; padding: 20px; min-height: 60px; }
+  .controls, .recall { margin: 20px 0; }
+  textarea { width: 100%; height: 120px; resize: vertical; }
+  .mistakes { color: red; font-weight: bold; margin-top: 5px; }
+</style>
+</head>
+<body>
+<h1>VAKCOG</h1>
+
+<!-- Controls -->
+<div class="controls">
+  <label for="numSentences">Number of sentences:</label>
+  <input type="number" id="numSentences" value="1" min="1" max="10">
+  <br>
+  <label for="difficulty">Difficulty:</label>
+  <select id="difficulty">
+    <option value="simple">Simple</option>
+    <option value="medium">Medium</option>
+    <option value="hard">Hard</option>
+  </select>
+  <br>
+  <label for="timer">Word timing (ms):</label>
+  <input type="range" id="timer" min="200" max="3000" step="100" value="1000">
+  <span id="timerValue">1000</span> ms
+  <br>
+  <label><input type="checkbox" id="showFullSentenceToggle"> Show full sentence instead of word flash</label>
+  <br>
+  <button id="startSequence">Start Sequence</button>
+  <button id="repeatSequence">Repeat Sentence</button>
+  <button id="showFullSequence">Show Full Sequence</button>
+</div>
+
+<!-- Flash word / sentence -->
+<div class="flash-word" id="flashWord">Press Start</div>
+<div id="fullSequence" class="hidden"></div>
+
+<!-- Recall -->
+<div class="recall">
+  <h3>Recall</h3>
+  <textarea id="recallInput" placeholder="Type what you remember here..."></textarea><br>
+  <button id="checkRecall">Check Recall</button>
+  <div id="recallResult"></div>
+  <div id="recallMistakes" class="mistakes"></div>
+
+  <h3>Partial Recall</h3>
+  <label for="lastN">Last N sentences:</label>
+  <input type="number" id="lastN" min="1" value="1">
+  <textarea id="partialRecallInput" placeholder="Type partial recall..."></textarea><br>
+  <button id="checkPartial">Check Partial Recall</button>
+  <button id="resetPartial">Reset Partial</button>
+  <div id="partialRecallResult"></div>
+  <div id="partialMistakes" class="mistakes"></div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>

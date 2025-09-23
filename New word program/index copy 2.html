@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sentence Practice (Enhanced)</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+
+    .controls, .recall, .memory-notes, .search-section { margin: 20px 0; }
+    input[type="number"], select, button { margin: 5px; }
+
+    #flashWord {
+      border: 2px solid #333;
+      padding: 20px;
+      min-height: 60px;
+      font-size: 28px;
+      text-align: center;
+      margin: 20px auto;
+      width: 90%;
+      border-radius: 6px;
+      background: #fafafa;
+    }
+
+    .sequence-word {
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 3px;
+      transition: background 0.2s;
+      display: inline-block;
+      margin: 0 2px;
+    }
+    .sequence-word:hover { background: #e0e0e0; }
+    .with-note { color: darkblue; font-weight: bold; }
+
+    textarea { width: 100%; min-height: 90px; resize: none; padding: 6px; }
+    .mistakes { color: red; font-weight: bold; margin-top: 8px; }
+
+    .category-block {
+      border: 1px solid #ccc;
+      padding: 6px;
+      margin: 6px 0;
+      border-radius: 4px;
+      background: #f9f9f9;
+    }
+    .category-header {
+      display: flex;
+      justify-content: space-between;
+      cursor: pointer;
+      font-weight: bold;
+      margin-bottom: 4px;
+      user-select: none;
+    }
+    .category-items { display: none; padding-left: 20px; }
+
+    .description-box {
+      margin-top: 6px;
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 6px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .delete-btn { margin-left: 10px; color: red; cursor: pointer; }
+
+    /* small helper for little captions */
+    .hint { color:#666; font-size: 12px; margin-left: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Sentence Practice</h1>
+
+  <div class="controls">
+    <div class="row">
+      <label for="numSentences">Number of sentences:</label>
+      <input type="number" id="numSentences" value="1" min="1" max="10">
+
+      <label for="difficulty">Difficulty:</label>
+      <select id="difficulty">
+        <option value="simple">Simple</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label><input type="checkbox" id="showFullToggle"> Show full sentence</label>
+      <label><input type="checkbox" id="speechToggle"> Read aloud</label>
+    </div>
+
+    <div class="row">
+      <label for="timer">Flash speed (ms):</label>
+      <input type="range" id="timer" min="300" max="4000" step="100" value="1000">
+      <span id="timerValue">1000</span> ms
+    </div>
+
+    <div class="row">
+      <button id="startBtn">Start Sequence</button>
+      <button id="showSequence">Show Sequence</button>
+      <span class="hint">“Show Sequence” displays the last sentence shown. Click words to annotate.</span>
+    </div>
+  </div>
+
+  <div id="flashWord">Press Start</div>
+
+  <div class="recall">
+    <h3>Recall</h3>
+    <textarea id="recallInput" placeholder="Type what you remember..."></textarea><br>
+    <button id="checkRecall">Check Recall</button>
+    <div id="recallResult"></div>
+    <div id="recallMistakes" class="mistakes"></div>
+
+    <h3>Partial Recall</h3>
+    <div class="row">
+      <label for="lastN">Last N sentences:</label>
+      <input type="number" id="lastN" value="1" min="1">
+    </div>
+    <textarea id="partialRecallInput" placeholder="Type the last N sentences..."></textarea><br>
+    <button id="checkPartial">Check Partial</button>
+    <button id="resetPartial">Reset Partial</button>
+    <div id="partialResult"></div>
+    <div id="partialMistakes" class="mistakes"></div>
+  </div>
+
+  <div class="memory-notes">
+    <h3 id="memoryHeader" style="cursor:pointer;">Memory Notes ▼</h3>
+    <div id="memoryContent" style="display:none;">
+      <div class="row">
+        <input type="text" id="newCategory" placeholder="New category name">
+        <button id="addCategory">Add Category</button>
+        <span class="hint">Click a category name to expand/collapse. Use [x] to delete a category.</span>
+      </div>
+
+      <div id="categories"></div>
+
+      <h4>Add New Entry</h4>
+      <div class="row">
+        <select id="entryCategory"></select>
+        <input type="text" id="entryWord" placeholder="Word or item">
+        <input type="text" id="entryDesc" placeholder="Description">
+        <button id="addEntryBtn">Add Entry</button>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <button id="exportNotes">Export Notes</button>
+        <input type="file" id="importNotes" style="display:none;" accept="application/json">
+        <button id="importBtn">Import Notes</button>
+        <span class="hint">Export creates <code>memory_notes.json</code>. Import loads from a JSON file.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-section">
+    <h3>Search Notes</h3>
+    <input type="text" id="searchBox" placeholder="Search word...">
+    <div id="searchResult"></div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
