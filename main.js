@@ -74,6 +74,17 @@ function getDescription(wordKey) {
 }
 
 // ----------------------------
+// Shuffle helper
+// ----------------------------
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ----------------------------
 // Generate & Play
 // ----------------------------
 function generateSequence() {
@@ -81,12 +92,13 @@ function generateSequence() {
   const diff = document.getElementById("difficulty").value;
 
   sequenceSets = [];
-  for (let i = 0; i < num; i++) {
-    const pool = sentences[diff];
-    if (!pool || pool.length === 0) continue;
-    const sent = pool[Math.floor(Math.random() * pool.length)];
-    sequenceSets.push(sent.split(/\s+/));
+  const pool = [...sentences[diff]]; // copy sentences at chosen difficulty
+  shuffle(pool);
+
+  for (let i = 0; i < num && i < pool.length; i++) {
+    sequenceSets.push(pool[i].split(/\s+/));
   }
+
   currentIdx = 0;
 
   recallInput.value = "";
