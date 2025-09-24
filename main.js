@@ -18,7 +18,6 @@ const partialInput = document.getElementById("partialRecallInput");
 // Default Categories
 // ----------------------------
 const DEFAULT_CATEGORIES = ["People", "Objects", "Places", "Events", "Actions"];
-
 let memoryNotes = JSON.parse(localStorage.getItem("memoryNotes") || "{}");
 
 function ensureDefaultCategories() {
@@ -47,8 +46,10 @@ fetch("sentences.json")
 function speak(text) {
   if (!speechToggle.checked) return;
   if (!("speechSynthesis" in window)) return;
+  const warmup = new SpeechSynthesisUtterance("Next sentence.");
   const utter = new SpeechSynthesisUtterance(text);
   window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(warmup);
   window.speechSynthesis.speak(utter);
 }
 
@@ -145,8 +146,113 @@ function playSentence() {
 document.getElementById("showSequence").addEventListener("click", () => {
   flashWord.innerHTML = "";
   if (sequenceSets.length > 0) {
-    const words = sequenceSets[sequenceSets.length - 1]; // show last sentence
+    const words = sequenceSets[sequenceSets.length - 1];
     renderSentence(words);
+  }
+});
+
+// ----------------------------
+// Fuzzy Recall with Detailed Feedback
+// ----------------------------
+function normalizeToken(w) {
+  return (w || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function levenshtein(a, b) {
+  const dp = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      if (a[i - 1] === b[j - 1]) dp[i][j] = dp[i - 1][j - 1];
+      else dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+function allowedDistance(len) {
+  if (len <= 4) return 1;
+  if (len <= 7) return 2;
+  return 3;
+}
+
+function compareSequences(input, reference) {
+  const inputWords = (input || "").split(/\s+/).map(normalizeToken).filter(Boolean);
+  const refWords = reference.map(normalizeToken).filter(Boolean);
+
+  let matched = 0;
+  const mistakes = [];
+
+  const maxLen = Math.max(inputWords.length, refWords.length);
+  for (let i = 0; i < maxLen; i++) {
+    const iw = inputWords[i];
+    const rw = refWords[i];
+
+    if (!iw && rw) {
+      mistakes.push(`❌ Missing: "${rw}"`);
+      continue;
+    }
+    if (iw && !rw) {
+      mistakes.push(`❌ Extra: "${iw}"`);
+      continue;
+    }
+
+    if (iw === rw) {
+      matched++;
+    } else {
+      const dist = levenshtein(iw, rw);
+      if (dist <= allowedDistance(Math.max(iw.length, rw.length))) {
+        matched++;
+      } else {
+        mistakes.push(`❌ Expected "${rw}", got "${iw}"`);
+      }
+    }
+  }
+
+  return { matched, total: refWords.length, mistakes };
+}
+
+function checkRecallFull() {
+  if (sequenceSets.length === 0) return;
+  const reference = sequenceSets.flat(); // all sentences
+  const result = compareSequences(recallInput.value, reference);
+
+  document.getElementById("recallResult").textContent =
+    `Matched: ${result.matched}/${result.total}`;
+  document.getElementById("recallMistakes").innerHTML =
+    result.mistakes.length ? result.mistakes.join("<br>") : "✅ Perfect!";
+}
+
+function checkPartialRecall() {
+  if (sequenceSets.length === 0) return;
+  let lastN = parseInt(document.getElementById("lastN").value);
+  if (Number.isNaN(lastN) || lastN < 1) lastN = 1;
+  lastN = Math.min(lastN, sequenceSets.length);
+
+  const subset = sequenceSets.slice(sequenceSets.length - lastN).flat();
+  const result = compareSequences(partialInput.value, subset);
+
+  document.getElementById("partialResult").textContent =
+    `Matched: ${result.matched}/${result.total}`;
+  document.getElementById("partialMistakes").innerHTML =
+    result.mistakes.length ? result.mistakes.join("<br>") : "✅ Perfect!";
+}
+
+document.getElementById("checkRecall").addEventListener("click", checkRecallFull);
+document.getElementById("checkPartial").addEventListener("click", checkPartialRecall);
+
+// Enter key shortcut
+recallInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    checkRecallFull();
+  }
+});
+partialInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    checkPartialRecall();
   }
 });
 
@@ -165,15 +271,14 @@ const entryDesc = document.getElementById("entryDesc");
 const addEntryBtn = document.getElementById("addEntryBtn");
 
 memoryHeader.addEventListener("click", () => {
-  const open = !memoryContent.classList.contains("hidden");
-  memoryContent.classList.toggle("hidden", open);
+  const open = memoryContent.style.display !== "none";
+  memoryContent.style.display = open ? "none" : "block";
   memoryHeader.textContent = open ? "Memory Notes ▼" : "Memory Notes ▲";
 });
 
 function saveNotes() {
   localStorage.setItem("memoryNotes", JSON.stringify(memoryNotes));
 }
-
 function renderCategories() {
   categoriesDiv.innerHTML = "";
   for (const cat in memoryNotes) {
@@ -185,7 +290,7 @@ function renderCategories() {
     header.style.cursor = "pointer";
 
     const delBtn = document.createElement("button");
-    delBtn.textContent = "Delete Category";
+    delBtn.textContent = "Delete";
     delBtn.style.marginLeft = "10px";
     delBtn.onclick = () => {
       if (confirm(`Delete category "${cat}"?`)) {
@@ -221,7 +326,6 @@ function renderCategories() {
   }
   refreshEntryCategoryDropdown();
 }
-
 function refreshEntryCategoryDropdown() {
   entryCategory.innerHTML = "";
   for (const cat in memoryNotes) {
@@ -231,7 +335,6 @@ function refreshEntryCategoryDropdown() {
     entryCategory.appendChild(opt);
   }
 }
-
 addCategoryBtn.addEventListener("click", () => {
   const cat = (newCategoryInput.value || "").trim();
   if (!cat) return;
@@ -240,23 +343,22 @@ addCategoryBtn.addEventListener("click", () => {
   saveNotes();
   renderCategories();
 });
-
 addEntryBtn.addEventListener("click", () => {
   const cat = entryCategory.value;
   const word = (entryWord.value || "").trim();
   const desc = (entryDesc.value || "").trim();
   if (!cat || !word) return;
   if (!memoryNotes[cat]) memoryNotes[cat] = [];
-  memoryNotes[cat].push({ word, desc });
+  const existing = memoryNotes[cat].find(n => n.word.toLowerCase() === word.toLowerCase());
+  if (existing) existing.desc = desc;
+  else memoryNotes[cat].push({ word, desc });
   saveNotes();
   renderCategories();
   entryWord.value = "";
   entryDesc.value = "";
 });
 
-// ----------------------------
-// Inline Word Editor
-// ----------------------------
+// Inline word editor
 function openDescriptionEditor(wordKey, span, originalWord) {
   const existing = span.parentElement.querySelector(".description-box");
   if (existing) existing.remove();
@@ -291,6 +393,7 @@ function openDescriptionEditor(wordKey, span, originalWord) {
     renderCategories();
     editor.remove();
     span.textContent = input.value ? appendNoteToText(originalWord, input.value) : originalWord;
+    if (input.value) span.classList.add("with-note"); else span.classList.remove("with-note");
   };
 
   editor.appendChild(dropdown);
@@ -311,11 +414,9 @@ document.getElementById("exportNotes").addEventListener("click", () => {
   a.click();
   URL.revokeObjectURL(url);
 });
-
 document.getElementById("importBtn").addEventListener("click", () => {
   document.getElementById("importNotes").click();
 });
-
 document.getElementById("importNotes").addEventListener("change", e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -348,66 +449,12 @@ searchBox.addEventListener("input", () => {
     memoryNotes[cat].forEach(note => {
       if ((note.word || "").toLowerCase().includes(query)) {
         const div = document.createElement("div");
-        div.textContent = `${note.word} → ${note.desc || "(no description)"}`;
+        div.textContent = note.desc || "(no description)";
         searchResult.appendChild(div);
       }
     });
   }
 });
-
-// ----------------------------
-// Recall Checking
-// ----------------------------
-function normalizeWords(text) {
-  return (text || "")
-    .toLowerCase()
-    .replace(/[^\w\s]/g, "")
-    .split(/\s+/)
-    .filter(Boolean);
-}
-
-function checkRecall() {
-  if (sequenceSets.length === 0) return;
-  const lastSeq = sequenceSets[sequenceSets.length - 1];
-  const expected = normalizeWords(lastSeq.join(" "));
-  const typed = normalizeWords(recallInput.value);
-
-  const correct = [];
-  const mistakes = [];
-
-  expected.forEach(word => {
-    if (typed.includes(word)) correct.push(word);
-    else mistakes.push(word);
-  });
-
-  document.getElementById("recallResult").textContent =
-    `Matched: ${correct.length}/${expected.length}`;
-  document.getElementById("recallMistakes").textContent =
-    mistakes.length ? `Missed: ${mistakes.join(", ")}` : "No mistakes 🎉";
-}
-
-function checkPartialRecall() {
-  if (sequenceSets.length === 0) return;
-  const allWords = sequenceSets.flat().map(w => w.toLowerCase().replace(/[^\w\s]/g, ""));
-  const typed = normalizeWords(partialInput.value);
-
-  const uniqueExpected = [...new Set(allWords)];
-  const correct = [];
-  const mistakes = [];
-
-  uniqueExpected.forEach(word => {
-    if (typed.includes(word)) correct.push(word);
-    else mistakes.push(word);
-  });
-
-  document.getElementById("partialResult").textContent =
-    `Matched: ${correct.length}/${uniqueExpected.length}`;
-  document.getElementById("partialMistakes").textContent =
-    mistakes.length ? `Missed: ${mistakes.join(", ")}` : "No mistakes 🎉";
-}
-
-document.getElementById("checkRecall").addEventListener("click", checkRecall);
-document.getElementById("checkPartial").addEventListener("click", checkPartialRecall);
 
 // ----------------------------
 // Init
