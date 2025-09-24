@@ -14,6 +14,9 @@ const speechToggle = document.getElementById("speechToggle");
 const recallInput = document.getElementById("recallInput");
 const partialInput = document.getElementById("partialRecallInput");
 
+// NEW: toggle for showing descriptions
+const showNotesToggle = document.getElementById("showNotesToggle");
+
 // ----------------------------
 // Default Categories
 // ----------------------------
@@ -118,8 +121,14 @@ function renderSentence(words) {
     const span = document.createElement("span");
     span.className = "sequence-word";
     const desc = getDescription(key);
-    span.textContent = desc ? appendNoteToText(word, desc) : word;
-    if (desc) span.classList.add("with-note");
+
+    // Only show description if toggle is ON
+    span.textContent =
+      (desc && showNotesToggle && showNotesToggle.checked)
+        ? appendNoteToText(word, desc)
+        : word;
+
+    if (desc && showNotesToggle.checked) span.classList.add("with-note");
 
     span.addEventListener("click", () => openDescriptionEditor(key, span, word));
     flashWord.appendChild(span);
@@ -405,7 +414,8 @@ function openDescriptionEditor(wordKey, span, originalWord) {
     renderCategories();
     editor.remove();
     span.textContent = input.value ? appendNoteToText(originalWord, input.value) : originalWord;
-    if (input.value) span.classList.add("with-note"); else span.classList.remove("with-note");
+    if (input.value && showNotesToggle.checked) span.classList.add("with-note");
+    else span.classList.remove("with-note");
   };
 
   editor.appendChild(dropdown);
