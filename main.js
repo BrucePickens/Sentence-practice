@@ -356,6 +356,60 @@ searchBox.addEventListener("input", () => {
 });
 
 // ----------------------------
+// Recall Checking
+// ----------------------------
+function normalizeWords(text) {
+  return (text || "")
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function checkRecall() {
+  if (sequenceSets.length === 0) return;
+  const lastSeq = sequenceSets[sequenceSets.length - 1];
+  const expected = normalizeWords(lastSeq.join(" "));
+  const typed = normalizeWords(recallInput.value);
+
+  const correct = [];
+  const mistakes = [];
+
+  expected.forEach(word => {
+    if (typed.includes(word)) correct.push(word);
+    else mistakes.push(word);
+  });
+
+  document.getElementById("recallResult").textContent =
+    `Matched: ${correct.length}/${expected.length}`;
+  document.getElementById("recallMistakes").textContent =
+    mistakes.length ? `Missed: ${mistakes.join(", ")}` : "No mistakes 🎉";
+}
+
+function checkPartialRecall() {
+  if (sequenceSets.length === 0) return;
+  const allWords = sequenceSets.flat().map(w => w.toLowerCase().replace(/[^\w\s]/g, ""));
+  const typed = normalizeWords(partialInput.value);
+
+  const uniqueExpected = [...new Set(allWords)];
+  const correct = [];
+  const mistakes = [];
+
+  uniqueExpected.forEach(word => {
+    if (typed.includes(word)) correct.push(word);
+    else mistakes.push(word);
+  });
+
+  document.getElementById("partialResult").textContent =
+    `Matched: ${correct.length}/${uniqueExpected.length}`;
+  document.getElementById("partialMistakes").textContent =
+    mistakes.length ? `Missed: ${mistakes.join(", ")}` : "No mistakes 🎉";
+}
+
+document.getElementById("checkRecall").addEventListener("click", checkRecall);
+document.getElementById("checkPartial").addEventListener("click", checkPartialRecall);
+
+// ----------------------------
 // Init
 // ----------------------------
 document.getElementById("startBtn").addEventListener("click", generateSequence);
